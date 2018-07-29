@@ -5,16 +5,16 @@
 #include <ArduinoJson.h>
 
 #define SEALEVELPRESSURE_HPA    (1013.25)
-#define MQTT_SERVER             "192.168.1.33"
+#define MQTT_SERVER             "{SERVER_IP}"
 #define MQTT_SERVERPORT         1883                   // use 8883 for SSL
-#define MQTT_USERNAME           "test"
-#define MQTT_PASSWORD           "test"
+#define MQTT_USERNAME           "{USERNAME}"
+#define MQTT_PASSWORD           "{PASSWORD}"
 
 WiFiClient wifiClient;
 Adafruit_BME280 bme; // I2C
 PubSubClient client(wifiClient);
-const char* ssid                = "Bbox-94FCAFAB";
-const char* password            = "AE55E14D3D4A2ADC1C3E1324AF224C";
+const char* ssid                = "{SSID}";
+const char* password            = "{PASSWORD}";
 
 void setup() {
     Serial.begin(9600);
