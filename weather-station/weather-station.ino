@@ -14,6 +14,7 @@ Adafruit_BME280 bme; // I2C
 PubSubClient client(wifiClient);
 const char* ssid                = "{SSID}";
 const char* password            = "{PASSWORD}";
+const char* uuid                = "{UUID}";
 const float voltMax             = 4.2;
 const float voltMin             = 3.0;
 
@@ -53,11 +54,11 @@ void setup() {
     voltPercent = round(voltPercent);
 
     if (voltage <= 3.2) {
-      payload = "{\"battery\": " + String(voltPercent, 0) + ", \"message\": \"Battery low voltage.\"}";
+      payload = "{\"battery\":" + String(voltPercent, 0) + ", \"message\":\"Battery low voltage.\",\"name\":\"marvin-weather-station\",\"uuid\":\"" + uuid + "\"}";
       publishMqttMessage("marvin/weather/errors", payload);
     }
 
-    payload = "{\"battery\": " + String(voltPercent, 0) + ",\"name\":\"marvin-weather-station\", \"uuid\":\"1236584f5544fds5\", \"temperature\":{\"value\": " + String(bme.readTemperature(),2) + ", \"unit\":\"C\"},humidity:{\"value\": " + String(bme.readHumidity(),2) + ", \"unit\":\"%\"},pressure:{\"value\": " + String((bme.readPressure() / 100.0F),0) + ", \"unit\":\"hPa\"},altitude:{\"value\": " + String(bme.readAltitude(SEALEVELPRESSURE_HPA),0) + ", \"unit\":\"m\"}}";
+    payload = "{\"battery\":" + String(voltPercent, 0) + ",\"name\":\"marvin-weather-station\",\"uuid\":\"" + uuid + "\",\"temperature\":{\"value\":" + String(bme.readTemperature(),2) + ",\"unit\":\"C\"},humidity:{\"value\":" + String(bme.readHumidity(),2) + ",\"unit\":\"%\"},pressure:{\"value\":" + String((bme.readPressure() / 100.0F),0) + ", \"unit\":\"hPa\"},altitude:{\"value\":" + String(bme.readAltitude(SEALEVELPRESSURE_HPA),0) + ",\"unit\":\"m\"}}";
     publishMqttMessage("marvin/weather/values", payload);
 
     // 3600e6 = 1 heure
@@ -67,7 +68,7 @@ void setup() {
 void loop() {}
 
 float readBatteryVoltage() {
-  sensorValue = AnalogRead(A0);
+  float sensorValue = analogRead(A0);
   float voltage = sensorValue / 1023;
   voltage       = 4.2 * voltage;
 
@@ -77,7 +78,7 @@ float readBatteryVoltage() {
 float voltToPercent(float voltage) {
   float voltPercent = (voltage / (voltMax - voltMin)) * 100;
 
-  return voltToPercent;
+  return voltPercent;
 }
 
 void publishMqttMessage(char* channel, String payload) {
