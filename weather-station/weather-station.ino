@@ -2,7 +2,6 @@
 #include <Adafruit_BME280.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <ArduinoJson.h>
 
 #define SEALEVELPRESSURE_HPA    (1013.25)
 #define MQTT_SERVER             "{SERVER_IP}"
@@ -15,6 +14,8 @@ Adafruit_BME280 bme; // I2C
 PubSubClient client(wifiClient);
 const char* ssid                = "{SSID}";
 const char* password            = "{PASSWORD}";
+const float voltMax             = 4.2;
+const float voltMin             = 3.0;
 
 void setup() {
     Serial.begin(9600);
@@ -42,33 +43,63 @@ void setup() {
                     Adafruit_BME280::SAMPLING_X1, // humidity
                     Adafruit_BME280::FILTER_OFF);
 
-    client.setServer(MQTT_SERVER, MQTT_SERVERPORT);
-
-    while (!client.connected()) {
-      Serial.print("Attempting MQTT connection...");
-      // Attempt to connect
-      if (client.connect("ESP8266marvin", "test", "test")) {
-        Serial.println("connected");
-      } else {
-        Serial.print("failed, rc=");
-        Serial.print(client.state());
-        Serial.println(" try again in 5 seconds");
-        // Wait 5 seconds before retrying
-        delay(5000);
-      }
-    }
-
+    mqttConnect();
     client.loop();
     //client.setCallback(callback);
-  
-    String payload = "{\"name\":\"marvin-weather-station\", \"uuid\":\"1236584f5544fds5\", \"temperature\":{\"value\": " + String(bme.readTemperature(),2) + ", \"unit\":\"C\"},humidity:{\"value\": " + String(bme.readHumidity(),2) + ", \"unit\":\"%\"},pressure:{\"value\": " + String((bme.readPressure() / 100.0F),0) + ", \"unit\":\"hPa\"},altitude:{\"value\": " + String(bme.readAltitude(SEALEVELPRESSURE_HPA),0) + ", \"unit\":\"m\"}}";
-  
-    if (false == client.publish("marvin/weather/values", payload.c_str())) {
-      Serial.println("Publish fail !");
+
+    String payload;
+    float voltage = readBatteryVoltage();
+    float voltPercent = voltToPercent(voltage);
+    voltPercent = round(voltPercent);
+
+    if (voltage <= 3.2) {
+      payload = "{\"battery\": " + String(voltPercent, 0) + ", \"message\": \"Battery low voltage.\"}";
+      publishMqttMessage("marvin/weather/errors", payload);
     }
+
+    payload = "{\"battery\": " + String(voltPercent, 0) + ",\"name\":\"marvin-weather-station\", \"uuid\":\"1236584f5544fds5\", \"temperature\":{\"value\": " + String(bme.readTemperature(),2) + ", \"unit\":\"C\"},humidity:{\"value\": " + String(bme.readHumidity(),2) + ", \"unit\":\"%\"},pressure:{\"value\": " + String((bme.readPressure() / 100.0F),0) + ", \"unit\":\"hPa\"},altitude:{\"value\": " + String(bme.readAltitude(SEALEVELPRESSURE_HPA),0) + ", \"unit\":\"m\"}}";
+    publishMqttMessage("marvin/weather/values", payload);
 
     // 3600e6 = 1 heure
     ESP.deepSleep(3600e6);
 }
 
 void loop() {}
+
+float readBatteryVoltage() {
+  sensorValue = AnalogRead(A0);
+  float voltage = sensorValue / 1023;
+  voltage       = 4.2 * voltage;
+
+  return voltage;
+}
+
+float voltToPercent(float voltage) {
+  float voltPercent = (voltage / (voltMax - voltMin)) * 100;
+
+  return voltToPercent;
+}
+
+void publishMqttMessage(char* channel, String payload) {
+  if (false == client.publish(channel, payload.c_str())) {
+      Serial.println("Publish fail !");
+    }
+}
+
+void mqttConnect() {
+  client.setServer(MQTT_SERVER, MQTT_SERVERPORT);
+
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP8266marvin", "test", "test")) {
+      Serial.println("connected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
