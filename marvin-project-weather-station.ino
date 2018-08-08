@@ -85,7 +85,7 @@ void publishMqttMessage(char* channel, String payload) {
 
 void wifiConnect() {
     WiFi.begin(config.wifiSsid, config.wifiPassword);
-  
+
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
