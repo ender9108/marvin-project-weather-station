@@ -1,3 +1,6 @@
+# 1 "/tmp/tmpC0WS_1"
+#include <Arduino.h>
+# 1 "/home/ender/Bureau/dev/marvin-project/marvin-project-weather-station/src/marvin-project-weather-station.ino"
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <ESP8266WiFi.h>
@@ -13,7 +16,7 @@ struct Config {
   char wifiSsid[32];
   char wifiPassword[64];
   char mqttHost[128];
-  int  mqttPort;
+  int mqttPort;
   char mqttUsername[32];
   char mqttPassword[64];
   char mqttPublishChannel[128];
@@ -25,26 +28,41 @@ ESP8266WebServer server(80);
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
 Config config;
-Adafruit_BME280 bme; // I2C
+Adafruit_BME280 bme;
 
-const char* wifiSsid        = "marvin-weather-station";
-const char* wifiPassword    = "marvin-weather-station";
+const char* wifiSsid = "marvin-weather-station";
+const char* wifiPassword = "marvin-weather-station";
 const String configFilePath = "/config.json";
-bool wifiConnected          = false;
-bool mqttConnected          = false;
-const float voltMax         = 4.2;
-const float voltMin         = 3.0;
-
+bool wifiConnected = false;
+bool mqttConnected = false;
+const float voltMax = 4.2;
+const float voltMin = 3.0;
+void setup();
+void loop();
+float readBatteryVoltage();
+float voltToPercent(float voltage);
+void publishMqttMessage(char* channel, String payload);
+void httpParametersPage();
+void httpRestartEsp();
+void httpSaveParameters();
+bool wifiConnect();
+bool mqttConnect();
+bool getConfig();
+bool setConfig();
+bool checkConfigValues();
+String buildUuid();
+void resetConfigFile();
+#line 38 "/home/ender/Bureau/dev/marvin-project/marvin-project-weather-station/src/marvin-project-weather-station.ino"
 void setup() {
     Serial.begin(9600);
 
     SPIFFS.begin();
 
-    // Get wifi SSID and PASSW from eeprom
+
   if (true == getConfig()) {
     if (true == checkConfigValues()) {
       wifiConnected = wifiConnect();
-  
+
       if (true == wifiConnected) {
         mqttConnected = mqttConnect();
       }
@@ -54,7 +72,7 @@ void setup() {
   if (false == wifiConnected) {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(wifiSsid, wifiPassword);
-    Serial.print("WiFi AP is ready (IP : ");  
+    Serial.print("WiFi AP is ready (IP : ");
     Serial.print(WiFi.softAPIP());
     Serial.println(")");
 
@@ -74,11 +92,11 @@ void setup() {
     }
 
     bme.setSampling(Adafruit_BME280::MODE_NORMAL,
-                    Adafruit_BME280::SAMPLING_X1, // temperature
-                    Adafruit_BME280::SAMPLING_X1, // pressure
-                    Adafruit_BME280::SAMPLING_X1, // humidity
+                    Adafruit_BME280::SAMPLING_X1,
+                    Adafruit_BME280::SAMPLING_X1,
+                    Adafruit_BME280::SAMPLING_X1,
                     Adafruit_BME280::FILTER_OFF);
-    
+
     client.loop();
 
     String payload;
@@ -94,10 +112,10 @@ void setup() {
     payload = "{\"battery\":" + String(voltPercent, 0) + ",\"name\":\"marvin-weather-station\",\"uuid\":\"" + config.uuid + "\",\"temperature\":{\"value\":" + String(bme.readTemperature(),2) + ",\"unit\":\"C\"},humidity:{\"value\":" + String(bme.readHumidity(),2) + ",\"unit\":\"%\"},pressure:{\"value\":" + String((bme.readPressure() / 100.0F),0) + ", \"unit\":\"hPa\"},altitude:{\"value\":" + String(bme.readAltitude(SEALEVELPRESSURE_HPA),0) + ",\"unit\":\"m\"}}";
     publishMqttMessage(config.mqttPublishChannel, payload);
 
-    // 3600e6 = 1 heure
-    // ESP.deepSleep(3600e6);
-    // to debug deep sleep = 10s
-    // ESP.deepSleep(10e6);
+
+
+
+
   }
 }
 
@@ -110,7 +128,7 @@ void loop() {
 float readBatteryVoltage() {
   float sensorValue = analogRead(A0);
   float voltage = sensorValue / 1023;
-  voltage       = 4.2 * voltage;
+  voltage = 4.2 * voltage;
 
   return voltage;
 }
@@ -127,12 +145,12 @@ void publishMqttMessage(char* channel, String payload) {
 }
 
 void httpParametersPage() {
-  /*
-   * @todo gestion des erreurs
-   */
-  
+
+
+
+
   String response = "";
-  response  = "\r\n\r\n<!DOCTYPE HTML>\r\n<html><body>";
+  response = "\r\n\r\n<!DOCTYPE HTML>\r\n<html><body>";
   response += "<h1>Marvin weather station</h1>";
   response += "<h3>Wifi parameters</h3>";
   response += "<form method=\"POST\" action=\"/save\">";
@@ -146,7 +164,7 @@ void httpParametersPage() {
   response += "<p><label style=\"min-width:90px;\" for=\"wmqttPass\">Passord    : </label><input value=\"test\" maxlength=\"64\" type=\"text\" name=\"wmqttPass\" id=\"wmqttPass\" style=\"border:1px solid #000;width:250px;\"></p>";
   response += "<p><label style=\"min-width:90px;\" for=\"wmqttChanBat\">Channel Battery    : </label><input value=\"/marvin/weather-station/battery/alert\" maxlength=\"128\" type=\"text\" name=\"wmqttChanBat\" id=\"wmqttChanBat\" style=\"border:1px solid #000;width:250px;\"></p>";
   response += "<p><label style=\"min-width:90px;\" for=\"wmqttChan\">Channel    : </label><input value=\"/marvin/weather-station/value\" maxlength=\"128\" type=\"text\" name=\"wmqttChan\" id=\"wmqttChan\" style=\"border:1px solid #000;width:250px;\"></p>";
-  
+
   response += "<hr>";
   response += "<p><input type=\"submit\" value=\"Save\"></p>";
   response += "</form>";
@@ -156,7 +174,7 @@ void httpParametersPage() {
 
 void httpRestartEsp() {
   String response = "";
-  response  = "\r\n\r\n<!DOCTYPE HTML>\r\n<html><body>";
+  response = "\r\n\r\n<!DOCTYPE HTML>\r\n<html><body>";
   response += "<h1>Marvin weather station</h1>";
   response += "<h3>Restart in progress...</h3>";
   response += "<p>After restarting this page will no longer be available</p>";
@@ -164,8 +182,8 @@ void httpRestartEsp() {
   server.send(200, "text/html", response);
 
   delay(5000);
-  
-  //ESP.restart();
+
+
 }
 
 void httpSaveParameters() {
@@ -178,7 +196,7 @@ void httpSaveParameters() {
     Serial.println(server.arg(i));
   }
 
-  if (!server.hasArg("wssid") || !server.hasArg("wpassw")){  
+  if (!server.hasArg("wssid") || !server.hasArg("wpassw")){
     error = true;
     Serial.println("No wssid and wpassw args");
   }
@@ -197,7 +215,7 @@ void httpSaveParameters() {
     server.arg("wmqttPass").toCharArray(config.mqttPassword, 64);
     server.arg("wmqttChanBat").toCharArray(config.mqttPublishChannelBat, 128);
     server.arg("wmqttChan").toCharArray(config.mqttPublishChannel, 128);
-    
+
     Serial.print("wifiSsid : ");
     Serial.println(config.wifiSsid);
     Serial.print("wifiPassword : ");
@@ -217,7 +235,7 @@ void httpSaveParameters() {
 
     setConfig();
 
-    response  = "\r\n\r\n<!DOCTYPE HTML>\r\n<html><body>";
+    response = "\r\n\r\n<!DOCTYPE HTML>\r\n<html><body>";
     response += "<h1>Marvin weather station</h1>";
     response += "<p>OK - Wifi parameters has been saved !</p>";
     response += "<p>OK - MQTT parameters has been saved !</p>";
@@ -241,14 +259,14 @@ bool wifiConnect() {
   while (count < 20) {
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("");
-      Serial.print("WiFi connected (IP : ");  
+      Serial.print("WiFi connected (IP : ");
       Serial.print(WiFi.localIP());
       Serial.println(")");
-  
+
       return true;
     } else {
       delay(500);
-      Serial.print(".");  
+      Serial.print(".");
     }
 
     count++;
@@ -265,7 +283,7 @@ bool mqttConnect() {
 
     while (!client.connected()) {
         Serial.print("Attempting MQTT connection...");
-        // Attempt to connect
+
         if (client.connect("MarvinGroundHumidity", config.mqttUsername, config.mqttPassword)) {
             Serial.println("connected");
             return true;
@@ -273,7 +291,7 @@ bool mqttConnect() {
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
-            // Wait 5 seconds before retrying
+
             delay(5000);
 
             if (count == 10) {
@@ -301,12 +319,12 @@ bool getConfig() {
     return false;
   }
 
-  // Allocate a buffer to store contents of the file.
+
   std::unique_ptr<char[]> buf(new char[size]);
 
-  // We don't use String here because ArduinoJson library requires the input
-  // buffer to be mutable. If you don't use ArduinoJson, you may as well
-  // use configFile.readString instead.
+
+
+
   configFile.readBytes(buf.get(), size);
 
   StaticJsonBuffer<512> jsonBuffer;
@@ -317,7 +335,7 @@ bool getConfig() {
     return false;
   }
 
-  // Copy values from the JsonObject to the Config
+
   strlcpy(config.wifiSsid, json["wifiSsid"], sizeof(config.wifiSsid));
   strlcpy(config.wifiPassword, json["wifiPassword"], sizeof(config.wifiPassword));
   strlcpy(config.mqttHost, json["mqttHost"], sizeof(config.mqttHost));
@@ -355,7 +373,7 @@ bool getConfig() {
 bool setConfig() {
   StaticJsonBuffer<512> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
-  
+
   json["wifiSsid"] = config.wifiSsid;
   json["wifiPassword"] = config.wifiPassword;
   json["mqttHost"] = config.mqttHost;
@@ -376,7 +394,7 @@ bool setConfig() {
   }
 
   File configFile = SPIFFS.open(configFilePath, "w");
-  
+
   if (!configFile) {
     Serial.println("Failed to open config file for writing");
     return false;
@@ -396,7 +414,7 @@ bool checkConfigValues() {
 
   Serial.print("config.wifiPassword length : ");
   Serial.println(strlen(config.wifiPassword));
-  
+
   if ( strlen(config.wifiSsid) > 1 && strlen(config.wifiPassword) > 1 ) {
     return true;
   }
@@ -408,7 +426,7 @@ bool checkConfigValues() {
 String buildUuid() {
   byte uuidNumber[16];
   ESP8266TrueRandom.uuid(uuidNumber);
-  
+
   return ESP8266TrueRandom.uuidToString(uuidNumber);
 }
 
