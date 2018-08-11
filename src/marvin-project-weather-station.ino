@@ -36,9 +36,9 @@ const float voltMax         = 4.2;
 const float voltMin         = 3.0;
 
 void setup() {
-    Serial.begin(9600);
+  Serial.begin(9600);
 
-    SPIFFS.begin();
+  SPIFFS.begin();
 
     // Get wifi SSID and PASSW from eeprom
   if (true == getConfig()) {
@@ -95,7 +95,7 @@ void setup() {
     publishMqttMessage(config.mqttPublishChannel, payload);
 
     // 3600e6 = 1 heure
-    // ESP.deepSleep(3600e6);
+    ESP.deepSleep(3600e6);
     // to debug deep sleep = 10s
     // ESP.deepSleep(10e6);
   }
@@ -165,7 +165,7 @@ void httpRestartEsp() {
 
   delay(5000);
   
-  //ESP.restart();
+  ESP.reset();
 }
 
 void httpSaveParameters() {
